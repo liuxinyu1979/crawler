@@ -6,6 +6,7 @@ import smtplib, ssl
 
 public_notice_root_page = 'http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/index.jhtml'
 
+# https://realpython.com/python-send-email/
 def send_email(subject, msg):
     port = 465  # For SSL
     password = os.environ['blah']
