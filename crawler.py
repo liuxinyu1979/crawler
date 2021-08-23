@@ -29,12 +29,15 @@ def send_email(subject, msg):
         server.sendmail(sender_email, receiver_email, message)
 
 
-def crawl_single_page(root_page, working_dir):
+def crawl_single_page(root_page, working_dir, today, page_cnt):
     web_link_prefix = r'http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/\d{6}.jhtml'#http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/*.jhtml'
     label_prefix = r'JG\d{4}\-\d{5}'
     date_prefix = r'<td><span>\d{4}\-\d{2}\-\d{2}</span></td>'
 
-    root_page = 'http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/index.jhtml'
+    page_idx = ''
+    if page_cnt > 1:
+        page_idx = '_'+str(page_cnt)
+    root_page = 'http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/index'+page_idx+'.jhtml'
     r = requests.get(root_page, allow_redirects=True)
     txt = r.text
 
@@ -42,31 +45,42 @@ def crawl_single_page(root_page, working_dir):
     labels = re.findall(label_prefix, txt)
     raw_dates = re.findall(date_prefix, txt)
 
-    #assume the lenth of raw_web_links and raw_labels and raw_dates are the same
-    today = str(datetime.date.today())
-
+    #assume the lenth of web_links and labels and raw_dates are the same
     url_info = []
     for i in range(len(web_links)):
         d = re.search(r'\d{4}\-\d{2}\-\d{2}', raw_dates[i]).group()
         if d == today:
             url_info.append((web_links[i], labels[i], d))
     
-    today_dir = os.path.join(working_dir, today)
-    if len(url_info) > 0:
-        if not os.path.exists(today_dir):
-            os.mkdir(today_dir)
-        for notice in url_info:
-            req = requests.get(notice[0], allow_redirects=True)
-            file_abs_path = os.path.join(today_dir, f"{notice[1]}.jhtml")
-            open(file_abs_path, 'wb').write(req.content)
-        send_email(f"There are {len(url_info)} new public notices", "this is a test message from Jackie")
-
-
-    # return next_page
+    return url_info
 
 
 
 cwd = os.getcwd()
-working_dir = os.path.join(cwd, 'crawler')
-if os.path.exists(working_dir):
-    crawl_single_page(public_notice_root_page, working_dir)
+working_dir = os.path.join(cwd, '')
+public_notice_items = []
+if not os.path.exists(working_dir):
+    print("Working direcotry does not exist")
+    exit()
+
+today = str(datetime.date.today())
+page = 1
+while True:
+    tmp = crawl_single_page(public_notice_root_page, working_dir, today, page)
+    if len(tmp) == 0:
+        break
+    public_notice_items += tmp
+    page += 1
+if len(public_notice_items) < 0:
+    exit()
+
+today_dir = os.path.join(working_dir, today)
+if len(public_notice_items) > 0:
+    if not os.path.exists(today_dir):
+        os.mkdir(today_dir)
+    for notice in public_notice_items:
+        req = requests.get(notice[0], allow_redirects=True)
+        file_abs_path = os.path.join(today_dir, f"{notice[1]}.jhtml")
+        open(file_abs_path, 'wb').write(req.content)
+    send_email(f"There are {len(public_notice_items)} new public notices", "this is a test message from Jackie")
+
