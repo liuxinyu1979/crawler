@@ -1,10 +1,10 @@
-import requests
+import util
 import re
 import datetime
 import os
 import smtplib, ssl
 import time
-
+import requests
 # parse the 广州公共资源交易中心 website
 class GGZYCralwer:
     def __init__(self, renderee_root_page) -> None:
@@ -46,8 +46,9 @@ class GGZYCralwer:
         if page_cnt > 1:
             page_idx = '_'+str(page_cnt)
         root_page = 'http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/index'+page_idx+'.jhtml'
-        r = requests.get(root_page, allow_redirects=True)
-        txt = r.text
+        txt = util.retriable_send_request(root_page)
+        if txt == None:
+            return
 
         web_links = re.findall(web_link_prefix, txt)
         labels = re.findall(label_prefix, txt)
@@ -59,7 +60,7 @@ class GGZYCralwer:
             d = re.search(r'\d{4}\-\d{2}\-\d{2}', raw_dates[i]).group()
             if d == today:
                 url_info.append((web_links[i], labels[i], d))
-        r.close()
+
         return url_info
 
     def get_tenderee(self, file_content):
@@ -86,7 +87,7 @@ class GGZYCralwer:
         while True:
             tmp = self.crawl_single_page(self.root_page, self.output_dir, self.today, page)
             time.sleep(1)
-            if len(tmp) == 0:
+            if tmp == None or len(tmp) == 0:
                 break
             public_notice_items += tmp
             page += 1
@@ -95,35 +96,22 @@ class GGZYCralwer:
             return
         
         for notice in public_notice_items:
-            success = False
-            retry_cnt = 0
-            # if we got connection error, we will retry 3 times. 
-            while not success and retry_cnt < 3:
-                try:
-                    success = True
-                    req = requests.get(notice[0], allow_redirects=True)
-                    tenderee_name = self.get_tenderee(req.text)
-                    if tenderee_name == None:
-                        continue
-                    tenderee_name = tenderee_name.replace('、', '-')
-                    print(tenderee_name)
+            resp_text = util.retriable_send_request(notice[0])
+            tenderee_name = self.get_tenderee(resp_text)
+            if tenderee_name == None:
+                continue
+            tenderee_name = tenderee_name.replace('、', '-')
+            print(tenderee_name)
 
-                    tenderee_dir = os.path.join(self.output_dir, tenderee_name)
-                    if not os.path.exists(tenderee_dir):
-                        os.mkdir(tenderee_dir)
+            tenderee_dir = os.path.join(self.output_dir, tenderee_name)
+            if not os.path.exists(tenderee_dir):
+                os.mkdir(tenderee_dir)
 
-                    today_dir = os.path.join(tenderee_dir, self.today)
-                    if not os.path.exists(today_dir):
-                        os.mkdir(today_dir)
-                    file_abs_path = os.path.join(today_dir, f"{notice[1]}.jhtml")
-                    open(file_abs_path, 'wb').write(req.content)
+            today_dir = os.path.join(tenderee_dir, self.today)
+            if not os.path.exists(today_dir):
+                os.mkdir(today_dir)
+            file_abs_path = os.path.join(today_dir, f"{notice[1]}.jhtml")
+            open(file_abs_path, 'w').write(resp_text)
 
-                    req.close()
-                except requests.exceptions.ConnectionError as e:
-                    print(f"Got connection error {e} for {notice[0]} on {notice[2]}, will retry")
-                    time.sleep(1)
-                    retry_cnt += 1
-                    success = False
-            
         # send_email(f"There are {len(public_notice_items)} new public notices", "this is a test message from Jackie")
 
