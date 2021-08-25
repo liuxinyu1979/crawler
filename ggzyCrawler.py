@@ -58,15 +58,13 @@ class GGZYCralwer:
             labels = []
             for i in range(len(web_links)):
                 labels.append(str(uuid.uuid4()))
-        # if we found a page 
-        for d in raw_dates:
-            if int(d[:4]) < 2011:
-                return None
 
         #assume the lenth of web_links and labels and raw_dates are the same
         url_info = []
         for i in range(len(web_links)):
             d = re.search(r'\d{4}\-\d{2}\-\d{2}', raw_dates[i]).group()
+            if int(d[:4]) < 2011:
+                return None
             if today == None or d == today:
                 url_info.append((web_links[i], labels[i], d))
 
