@@ -15,6 +15,8 @@ def usage():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        sys.argv.append('-?')
     ggzy_crawler = ggzyCrawler.GGZYCralwer('http://ggzy.gz.gov.cn/jyywjsgcfwjzzbgg/index.jhtml')
 
     try :
