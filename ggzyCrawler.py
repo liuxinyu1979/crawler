@@ -3,8 +3,8 @@ import re
 import datetime
 import os
 import smtplib, ssl
-import time
-import requests
+import uuid
+
 # parse the 广州公共资源交易中心 website
 class GGZYCralwer:
     def __init__(self, renderee_root_page) -> None:
@@ -49,11 +49,19 @@ class GGZYCralwer:
         print(f"crawling {cur_page}")
         txt = util.retriable_send_request(cur_page)
         if txt == None:
-            return
+            return None
 
         web_links = re.findall(web_link_prefix, txt)
         labels = re.findall(label_prefix, txt)
         raw_dates = re.findall(date_prefix, txt)
+        if len(labels) < len(web_links):
+            labels = []
+            for i in range(len(web_links)):
+                labels.append(str(uuid.uuid4()))
+        # if we found a page 
+        for d in raw_dates:
+            if int(d[:4]) < 2011:
+                return None
 
         #assume the lenth of web_links and labels and raw_dates are the same
         url_info = []
@@ -65,8 +73,30 @@ class GGZYCralwer:
         return url_info
 
     def get_tenderee(self, file_content):
-        tenderee = ""
-        tenderee_regexs = [r"标 单 位(.*?)</span></span>", r"招标单位：(.*?)&emsp;&emsp;</span>",r"招标人：(.*?)</span></li>"]
+        tenderee_regexs = [ r"招标单位：(.*?)<span ",
+                            r"招标单位：(.*?)<span", 
+                            r"招标单位：<(.*?)</SPAN", 
+                            r"招标单位：(.*?)><SPAN", 
+                            r"招标单位：(.*?)<SPAN", 
+                            r"招标单位：(.*?)></span",
+                            r"招标单位：(.*?)</span>",
+                            r"招标单位：(.*?)></SPAN",
+                            r"招标单位：(.*?)</SPAN",
+                            r"招标人：(.*?)></span",
+                            r"招标人：(.*?)</span",
+                            r"招标人：(.*?)></SPAN", 
+                            r"招标人：(.*?)</SPAN", 
+                            r"标 单 位(.*?)></span",
+                            r"标 单 位(.*?)</span", 
+                            r"标 单 位：(.*?)><span",
+                            r"标 单 位：(.*?)<span",
+                            r"招标代理机构(.*?)<o:p></o:p></SPAN",
+                            r"招标代理机构：(.*?)></SPAN",
+                            r"招标代理机构：(.*?)</SPAN",
+                            r"招标代理机构：(.*?)><SPAN",
+                            r"招标代理机构：(.*?)<SPAN",
+                            r"招标代理机构(.*?)><SPAN",
+                            r"招标代理机构(.*?)<SPAN"]
         txt = []
         for tr in tenderee_regexs:
             txt = re.findall(tr, file_content)
@@ -76,6 +106,17 @@ class GGZYCralwer:
             return None
         idx = txt[0].rfind('>')
         tenderee_name = txt[0][idx+1:]
+        idx = tenderee_name.rfind(':')
+        tenderee_name = tenderee_name[idx+1:]
+        idx = tenderee_name.find('<')
+        if idx >=0:
+            tenderee_name = tenderee_name[:idx]
+        idx = tenderee_name.find('&')
+        if idx >= 0:
+            tenderee_name = tenderee_name[:idx]
+        idx = tenderee_name.find('；')
+        if idx >= 0:
+            tenderee_name = tenderee_name[:idx]
         return tenderee_name
 
     def crawl_for_the_day(self):
@@ -98,6 +139,8 @@ class GGZYCralwer:
         
         for notice in public_notice_items:
             resp_text = util.retriable_send_request(notice[0])
+            if resp_text == None:
+                continue
             tenderee_name = self.get_tenderee(resp_text)
             if tenderee_name == None:
                 continue
@@ -131,6 +174,8 @@ class GGZYCralwer:
 
         for notice in public_notice_items:
             resp_text = util.retriable_send_request(notice[0])
+            if resp_text == None:
+                continue
             tenderee_name = self.get_tenderee(resp_text)
             if tenderee_name == None:
                 continue
