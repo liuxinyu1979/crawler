@@ -15,7 +15,7 @@ def retriable_send_request(url):
             return txt
         except requests.exceptions.ConnectionError as e:
             print(f"Got connection error {e} for {url}, will retry after sleeping for some time")
-            time.sleep(1)
+            time.sleep(3)
             retry_cnt += 1
             success = False
     print(f"Still cannot download {url} after retrying {max_retry_count} times, please manually retry")

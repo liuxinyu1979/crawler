@@ -26,9 +26,7 @@ if __name__ == "__main__":
                 os.system('clear')
                 print (usage())
             elif k == '-p':
-                # ggzy_crawler.crawl_for_the_day()
-                print("got p")
-                pass
+                ggzy_crawler.crawl_historical_data()
             elif k == '-d':
                 ggzy_crawler.crawl_for_the_day()
             else:
