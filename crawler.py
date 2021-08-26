@@ -29,6 +29,8 @@ if __name__ == "__main__":
                 ggzy_crawler.crawl_historical_data()
             elif k == '-d':
                 ggzy_crawler.crawl_for_the_day()
+            elif k == '-s':
+                ggzy_crawler.compute_summary()                
             else:
                 raise getopt.GetoptError(k + ":" + v)
     except getopt.GetoptError as err:

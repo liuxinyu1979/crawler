@@ -12,6 +12,7 @@ class GGZYCralwer:
         cwd = os.getcwd()
         self.output_dir = os.path.join(cwd, 'output')
         self.today = str(datetime.date.today())
+        self.min_year = 2011
 
     # https://realpython.com/python-send-email/
     def send_email(self, subject, msg):
@@ -63,7 +64,7 @@ class GGZYCralwer:
         url_info = []
         for i in range(len(web_links)):
             d = re.search(r'\d{4}\-\d{2}\-\d{2}', raw_dates[i]).group()
-            if int(d[:4]) < 2011:
+            if int(d[:4]) < self.min_year:
                 return None
             if today == None or d == today:
                 url_info.append((web_links[i], labels[i], d))
@@ -114,25 +115,6 @@ class GGZYCralwer:
                             r"招标人：(.*?)<span",
                             r"招标人：(.*?)><SPAN", 
                             r"招标人：(.*?)<SPAN"]
-                            # ,                             
-
-                            # r"招标代理机构：</span><(.*?)<o:p></o:p></SPAN",
-                            # r"招标代理机构(.*?)<o:p></o:p></SPAN",
-                            # r"招标代理机构：(.*?)></SPAN",
-                            # r"招标代理机构：(.*?)</SPAN",
-                            # r"招标代理机构：(.*?)><SPAN",
-                            # r"招标代理机构：(.*?)<SPAN",
-                            # r"招标代理机构(.*?)><SPAN",
-                            # r"招标代理机构(.*?)<SPAN",
-                            # r"招标代理机构：</span><(.*?)<o:p></o:p></span",
-                            # r"招标代理机构(.*?)<o:p></o:p></span",
-                            # r"招标代理机构：(.*?)></span",
-                            # r"招标代理机构：(.*?)</span",
-                            # r"招标代理机构：(.*?)</span ",
-                            # r"招标代理机构：(.*?)><span",
-                            # r"招标代理机构：(.*?)<span",
-                            # r"招标代理机构(.*?)><span",
-                            # r"招标代理机构(.*?)<span"]
         txt = []
         potential_names = []
         # get all potential names, and find the one that's shortest in length. We assume that's
@@ -213,7 +195,7 @@ class GGZYCralwer:
             if resp_text == None:
                 continue
             tenderee_name = self.get_tenderee(resp_text)
-            if tenderee_name == None:
+            if tenderee_name == None or tenderee_name == "":
                 continue
             tenderee_name = tenderee_name.replace('、', '-')
             print(tenderee_name)
@@ -262,3 +244,49 @@ class GGZYCralwer:
                 os.mkdir(date_dir)
             file_abs_path = os.path.join(date_dir, f"{notice[1]}.jhtml")
             open(file_abs_path, 'w').write(resp_text)
+
+    def compute_summary(self):
+        if not os.path.exists(self.output_dir):
+            print(f"{self.output_dir} doesn't exist")
+            return False
+        
+        renderee_summary = {}
+        for renderee_name in os.listdir(self.output_dir):
+            
+            renderee_dir = os.path.join(self.output_dir, renderee_name)
+            if renderee_name == '.' or renderee_name == '..' or os.path.isdir(renderee_dir) == False or renderee_name.startswith('20'):
+                continue
+            if renderee_name not in renderee_summary:
+                renderee_summary[renderee_name] = {}
+                year_start = datetime.date.today().year
+                for yr in range(year_start, self.min_year-1, -1):
+                    renderee_summary[renderee_name][yr] = 0
+                
+
+            year_lookup = renderee_summary[renderee_name]
+            for dated_dir in os.listdir(renderee_dir):
+                if dated_dir == '.' or dated_dir == '..':
+                    continue
+                year = int(dated_dir[:4])
+                count = len(os.listdir(os.path.join(renderee_dir, dated_dir)))
+                if year in year_lookup:
+                    year_lookup[year] += count
+                else:
+                    year_lookup[year] = count
+        today_dir = os.path.join(self.output_dir, "summary_"+str(datetime.date.today())+".csv")
+        this_year = datetime.date.today().year
+        title ="招标人，"
+        for y in range(this_year, self.min_year-1, -1):
+            title+=f"{y},"
+        title+="\n"
+
+
+        with open(today_dir, 'w') as out_file:
+            out_file.write(title)
+            txt = ""
+            for k, v in renderee_summary.items():
+                txt += k+","
+                for y in range(this_year, self.min_year-1, -1):
+                    txt+=f"{v[y]},"
+                txt +='\n'
+            out_file.write(txt)
