@@ -84,17 +84,33 @@ class GGZYCralwer:
                             r"招标人：(.*?)</span",
                             r"招标人：(.*?)></SPAN", 
                             r"招标人：(.*?)</SPAN", 
+                            r"招标人：(.*?)><span",
+                            r"招标人：(.*?)<span",
+                            r"招标人：(.*?)><SPAN", 
+                            r"招标人：(.*?)<SPAN",                             
+                            r"标 单 位：</span><(.*?)></span",
+                            r"标 单 位：</span><(.*?)</span",
                             r"标 单 位(.*?)></span",
                             r"标 单 位(.*?)</span", 
                             r"标 单 位：(.*?)><span",
                             r"标 单 位：(.*?)<span",
+                            r"招标代理机构：</span><(.*?)<o:p></o:p></SPAN",
                             r"招标代理机构(.*?)<o:p></o:p></SPAN",
                             r"招标代理机构：(.*?)></SPAN",
                             r"招标代理机构：(.*?)</SPAN",
                             r"招标代理机构：(.*?)><SPAN",
                             r"招标代理机构：(.*?)<SPAN",
                             r"招标代理机构(.*?)><SPAN",
-                            r"招标代理机构(.*?)<SPAN"]
+                            r"招标代理机构(.*?)<SPAN",
+                            r"招标代理机构：</span><(.*?)<o:p></o:p></span",
+                            r"招标代理机构(.*?)<o:p></o:p></span",
+                            r"招标代理机构：(.*?)></span",
+                            r"招标代理机构：(.*?)</span",
+                            r"招标代理机构：(.*?)</span ",
+                            r"招标代理机构：(.*?)><span",
+                            r"招标代理机构：(.*?)<span",
+                            r"招标代理机构(.*?)><span",
+                            r"招标代理机构(.*?)<span"]
         txt = []
         for tr in tenderee_regexs:
             txt = re.findall(tr, file_content)
@@ -113,6 +129,9 @@ class GGZYCralwer:
         if idx >= 0:
             tenderee_name = tenderee_name[:idx]
         idx = tenderee_name.find('；')
+        if idx >= 0:
+            tenderee_name = tenderee_name[:idx]
+        idx = tenderee_name.find('。')
         if idx >= 0:
             tenderee_name = tenderee_name[:idx]
         return tenderee_name
