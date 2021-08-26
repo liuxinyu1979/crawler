@@ -71,7 +71,23 @@ class GGZYCralwer:
         return url_info
 
     def get_tenderee(self, file_content):
-        tenderee_regexs = [ r"招标单位：(.*?)<span ",
+        tenderee_regexs = [ 
+                            r"标 单 位：</span><(.*?)></span",
+                            r"标 单 位：</span><(.*?)</span",
+                            r"标 单 位(.*?)></span",
+                            r"标 单 位(.*?)</span", 
+                            r"标 单 位：(.*?)><span",
+                            r"标 单 位：(.*?)<span",
+
+                            r"标单 位：</span><(.*?)></span",
+                            r"标单 位：</span><(.*?)</span",
+                            r"标单 位(.*?)></span",
+                            r"标单 位(.*?)</span", 
+                            r"标单 位：(.*?)><span",
+                            r"标单 位：(.*?)<span",
+
+                            r"招标单位：(.*?)<spanlang",
+                            r"招标单位：(.*?)<span ",
                             r"招标单位：(.*?)<span", 
                             r"招标单位：<(.*?)</SPAN", 
                             r"招标单位：(.*?)><SPAN", 
@@ -80,6 +96,16 @@ class GGZYCralwer:
                             r"招标单位：(.*?)</span>",
                             r"招标单位：(.*?)></SPAN",
                             r"招标单位：(.*?)</SPAN",
+
+                            r"招标人：<(.*?)></span",
+                            r"招标人：<(.*?)</span",
+                            r"招标人：<(.*?)></SPAN", 
+                            r"招标人：<(.*?)</SPAN", 
+                            r"招标人：<(.*?)><span",
+                            r"招标人：<(.*?)<span",
+                            r"招标人：<(.*?)><SPAN", 
+                            r"招标人：<(.*?)<SPAN",   
+
                             r"招标人：(.*?)></span",
                             r"招标人：(.*?)</span",
                             r"招标人：(.*?)></SPAN", 
@@ -87,39 +113,63 @@ class GGZYCralwer:
                             r"招标人：(.*?)><span",
                             r"招标人：(.*?)<span",
                             r"招标人：(.*?)><SPAN", 
-                            r"招标人：(.*?)<SPAN",                             
-                            r"标 单 位：</span><(.*?)></span",
-                            r"标 单 位：</span><(.*?)</span",
-                            r"标 单 位(.*?)></span",
-                            r"标 单 位(.*?)</span", 
-                            r"标 单 位：(.*?)><span",
-                            r"标 单 位：(.*?)<span",
-                            r"招标代理机构：</span><(.*?)<o:p></o:p></SPAN",
-                            r"招标代理机构(.*?)<o:p></o:p></SPAN",
-                            r"招标代理机构：(.*?)></SPAN",
-                            r"招标代理机构：(.*?)</SPAN",
-                            r"招标代理机构：(.*?)><SPAN",
-                            r"招标代理机构：(.*?)<SPAN",
-                            r"招标代理机构(.*?)><SPAN",
-                            r"招标代理机构(.*?)<SPAN",
-                            r"招标代理机构：</span><(.*?)<o:p></o:p></span",
-                            r"招标代理机构(.*?)<o:p></o:p></span",
-                            r"招标代理机构：(.*?)></span",
-                            r"招标代理机构：(.*?)</span",
-                            r"招标代理机构：(.*?)</span ",
-                            r"招标代理机构：(.*?)><span",
-                            r"招标代理机构：(.*?)<span",
-                            r"招标代理机构(.*?)><span",
-                            r"招标代理机构(.*?)<span"]
+                            r"招标人：(.*?)<SPAN"]
+                            # ,                             
+
+                            # r"招标代理机构：</span><(.*?)<o:p></o:p></SPAN",
+                            # r"招标代理机构(.*?)<o:p></o:p></SPAN",
+                            # r"招标代理机构：(.*?)></SPAN",
+                            # r"招标代理机构：(.*?)</SPAN",
+                            # r"招标代理机构：(.*?)><SPAN",
+                            # r"招标代理机构：(.*?)<SPAN",
+                            # r"招标代理机构(.*?)><SPAN",
+                            # r"招标代理机构(.*?)<SPAN",
+                            # r"招标代理机构：</span><(.*?)<o:p></o:p></span",
+                            # r"招标代理机构(.*?)<o:p></o:p></span",
+                            # r"招标代理机构：(.*?)></span",
+                            # r"招标代理机构：(.*?)</span",
+                            # r"招标代理机构：(.*?)</span ",
+                            # r"招标代理机构：(.*?)><span",
+                            # r"招标代理机构：(.*?)<span",
+                            # r"招标代理机构(.*?)><span",
+                            # r"招标代理机构(.*?)<span"]
         txt = []
+        potential_names = []
+        # get all potential names, and find the one that's shortest in length. We assume that's
+        # closest to truth
         for tr in tenderee_regexs:
             txt = re.findall(tr, file_content)
-            if len(txt) == 1:
-                break
-        if len(txt) == 0:
+            if len(txt) == 1 and len(txt[0]) > 1:
+                txt[0] = txt[0].replace('宋体', '')
+                if re.match('^[0-9a-zA-Z_/><!:; &=\.\?\-\'\"%]*$', txt[0]) == None:
+                    potential_names.append(txt[0])
+        if len(potential_names) == 0:
             return None
-        idx = txt[0].rfind('>')
-        tenderee_name = txt[0][idx+1:]
+
+        min_name = ""
+        for pn in potential_names:
+            if min_name == "" or len(pn) < len(min_name):
+                min_name = pn
+        # remove all tags behind known keywords
+        rm_keys = ["中心","公司","厅","政府","海关","会","队","社","局","学","院","室", "店"]
+        for rk in rm_keys:
+            pos = min_name.find(rk)
+            if pos > 1:
+                min_name = min_name[:pos+len(rk)]
+                break
+        # further remove any tags
+        remove_tags = ['<span lang=EN-US>','<spanlang=EN-US>','</u>','<u>','</span>',
+        '</span','<span>','<span','<o:p>','</o:p>','</o:p', '<p>', '<p','</p>', 
+        '</p', '</li>','</li','<li>','<li','<a>','</a>','<a','</a', '&nbsp;']
+        for rt in remove_tags:
+            min_name = min_name.replace(rt, '')
+
+        # idx = min_name.rfind('>')
+        # tenderee_name = min_name[idx+1:]
+        idx = min_name.rfind('>')
+        tenderee_name = min_name[idx+1:]
+        idx = tenderee_name.rfind('：')
+        tenderee_name = tenderee_name[idx+1:]
         idx = tenderee_name.rfind(':')
         tenderee_name = tenderee_name[idx+1:]
         idx = tenderee_name.find('<')
@@ -131,9 +181,13 @@ class GGZYCralwer:
         idx = tenderee_name.find('；')
         if idx >= 0:
             tenderee_name = tenderee_name[:idx]
+        idx = tenderee_name.find('; ')
+        if idx >= 0:
+            tenderee_name = tenderee_name[:idx]    
         idx = tenderee_name.find('。')
         if idx >= 0:
             tenderee_name = tenderee_name[:idx]
+        tenderee_name = tenderee_name.strip()
         return tenderee_name
 
     def crawl_for_the_day(self):
@@ -203,8 +257,8 @@ class GGZYCralwer:
             if not os.path.exists(tenderee_dir):
                 os.mkdir(tenderee_dir)
 
-            today_dir = os.path.join(tenderee_dir, self.today)
-            if not os.path.exists(today_dir):
-                os.mkdir(today_dir)
-            file_abs_path = os.path.join(today_dir, f"{notice[1]}.jhtml")
+            date_dir = os.path.join(tenderee_dir, notice[2])
+            if not os.path.exists(date_dir):
+                os.mkdir(date_dir)
+            file_abs_path = os.path.join(date_dir, f"{notice[1]}.jhtml")
             open(file_abs_path, 'w').write(resp_text)
