@@ -8,6 +8,7 @@ def usage():
     print ("-h Print help menu")
     print ("-p populate the historical data")
     print ("-d daily crawl")
+    print ("-s computes summary")
     print ("examples:")
     print ("example1 : python3 crawler.py -i")
     print ("example2 : python3 crawler.py -d")
