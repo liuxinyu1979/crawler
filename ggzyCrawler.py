@@ -230,7 +230,7 @@ class GGZYCralwer:
             if resp_text == None:
                 continue
             tenderee_name = self.get_tenderee(resp_text)
-            if tenderee_name == None:
+            if tenderee_name == None or tenderee_name == "":
                 continue
             tenderee_name = tenderee_name.replace('、', '-')
             print(tenderee_name)
